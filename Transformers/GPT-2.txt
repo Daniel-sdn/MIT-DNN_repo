@@ -1,0 +1,219 @@
+# GPT-2
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class Transformer(nn.Module):
+    def __init__(self, input_dim, emb_dim, hidden_dim, num_layers, num_heads, dropout):
+        super().__init__()
+
+        # Embedding layers
+        self.embedding = nn.Embedding(input_dim, emb_dim)
+        self.positional_encoding = PositionalEncoding(emb_dim, dropout)
+
+        # Encoder layers
+        self.encoder_layers = nn.ModuleList([EncoderLayer(emb_dim, hidden_dim, num_heads, dropout) for _ in range(num_layers)])
+
+    def forward(self, x):
+        # Embedding
+        embedded = self.embedding(x) * math.sqrt(self.emb_dim)
+        embedded = self.positional_encoding(embedded)
+
+        # Encoder layers
+        for encoder_layer in self.encoder_layers:
+            embedded = encoder_layer(embedded)
+
+        return embedded
+
+class EncoderLayer(nn.Module):
+    def __init__(self, emb_dim, hidden_dim, num_heads, dropout):
+        super().__init__()
+
+        # Multi-Head Attention
+        self.self_attn = MultiHeadedAttention(num_heads, emb_dim, dropout)
+
+        # Feed-Forward layer
+        self.feed_forward = FeedForward(emb_dim, hidden_dim, dropout)
+
+        # Layer Normalization
+        self.layer_norms = nn.ModuleList([nn.LayerNorm(emb_dim) for _ in range(2)])
+
+        # Dropout
+        self.dropout = nn.Dropout(p=dropout)
+
+    def forward(self, x):
+        # Multi-Head Attention
+        normalized = self.layer_norms[0](x)
+        attended = self.self_attn(normalized)
+        attended = self.dropout(attended) + x
+
+        # Feed-Forward layer
+        normalized = self.layer_norms[1](attended)
+        ff = self.feed_forward(normalized)
+        ff = self.dropout(ff) + attended
+
+        return ff
+
+class MultiHeadedAttention(nn.Module):
+    def __init__(self, num_heads, emb_dim, dropout):
+        super().__init__()
+
+        assert emb_dim % num_heads == 0
+        self.num_heads = num_heads
+        self.head_dim = emb_dim // num_heads
+
+        self.Wq = nn.Linear(emb_dim, emb_dim)
+        self.Wk = nn.Linear(emb_dim, emb_dim)
+        self.Wv = nn.Linear(emb_dim, emb_dim)
+        self.Wo = nn.Linear(emb_dim, emb_dim)
+
+        self.dropout = nn.Dropout(p=dropout)
+
+    def forward(self, x):
+        batch_size = x.size(0)
+
+        # Project to Q, K, V
+        Q = self.Wq(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)  # (batch_size, num_heads, seq_len, head_dim)
+        K = self.Wk(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)  # (batch_size, num_heads, seq_len, head_dim)
+        V = self.Wv(x).view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)  # (batch_size, num_heads, seq_len, head_dim)
+
+        # Compute scaled dot-product attention
+        scores = torch.matmul(Q, K.transpose(-2, -1)) / math.sqrt(self.head_dim)  # (batch_size, num_heads, seq_len, seq_len)
+        attention = F.softmax
+
+### it´s possible to create a front end for next word prediction?
+Yes, it's definitely possible to create a front end for next word prediction! Here's a high-level overview of how you might do it:
+
+Collect data: To build a language model for next word prediction, you'll need a large dataset of text. There are many sources of text data you could use, such as books, news articles, or web pages.
+
+Train a language model: Once you have your data, you can train a language model using a machine learning framework such as TensorFlow or PyTorch. There are many types of language models you could use, such as n-gram models, recurrent neural networks (RNNs), or Transformers. The specific model you choose will depend on the size of your dataset and the level of accuracy you require.
+
+Create a front end: Once you have a language model, you can create a front end for users to interact with. This could be a web page, a mobile app, or a chatbot. The front end should allow users to enter text and see a list of the most likely next words.
+
+Use the language model for prediction: To make next word predictions, the front end should call the language model you trained and pass it the user's input. The model will then output a probability distribution over the possible next words, and the front end can display the most likely candidates to the user.
+
+Refine the model: As users interact with the front end, you can collect more data on their inputs and use this data to refine the language model. This can improve the accuracy of the model and provide a better user experience.
+
+Overall, creating a front end for next word prediction involves collecting data, training a language model, creating a front end for users to interact with, and using the language model to make predictions. It's a complex task, but with the right tools and techniques, it's definitely possible to build a high-quality system that can help users generate natural-sounding text
+### Yes, could be possible to create a code for a simple front end and maybe a server?
+Yes, it's definitely possible to create a front end and server for next word prediction! Here's a high-level overview of how you might do it:
+
+Collect data: You'll need a large dataset of text. You can use existing datasets, such as the Brown Corpus or the Gutenberg Project, or you can create your own dataset by scraping web pages or other sources.
+
+Train a language model: Once you have your data, you can train a language model using a machine learning framework such as TensorFlow or PyTorch. There are many types of language models you could use, such as n-gram models, recurrent neural networks (RNNs), or Transformers. The specific model you choose will depend on the size of your dataset and the level of accuracy you require.
+
+Build a front end: You can build a front end for users to interact with using a web development framework such as React or Angular. The front end should allow users to enter text and see a list of the most likely next words. You can use libraries like axios or fetch to make API requests to the server.
+
+Build a server: You can build a server to handle the API requests from the front end and provide predictions. You can use a server-side language such as Python or Node.js and a web framework such as Flask or Express to build the server. The server should accept text input from the front end, pass it to the language model, and return a list of the most likely next words to the front end.
+
+Deploy the app: You can deploy the app on a cloud service such as AWS or Heroku to make it accessible to users.
+
+Overall, creating a front end and server for next word prediction involves collecting data, training a language model, building a front end for users to interact with, building a server to handle API requests, and deploying the app to a cloud service. It's a complex task, but with the right tools and techniques, it's definitely possible to build a high-quality system that can help users generate natural-sounding text.
+
+Let me know if you need any more specific information or guidance!
+### can you generate react code for this front end?
+Certainly! Here's a simple example of how you might create a React component for a next word prediction app:
+import React, { useState } from 'react';
+import axios from 'axios';
+
+function NextWordPredictor() {
+  const [text, setText] = useState('');
+  const [predictions, setPredictions] = useState([]);
+
+  function handleInputChange(event) {
+    setText(event.target.value);
+  }
+
+  async function handlePredict() {
+    const response = await axios.post('/predict', { text: text });
+    setPredictions(response.data.predictions);
+  }
+
+  return (
+    <div>
+      <input type="text" value={text} onChange={handleInputChange} />
+      <button onClick={handlePredict}>Predict</button>
+      <ul>
+        {predictions.map((prediction) => (
+          <li>{prediction}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+export default NextWordPredictor;
+
+In this example, we define a functional component called NextWordPredictor. It has two state variables: text, which represents the user's input text, and predictions, which represents the list of predicted words. We use the useState hook to manage these state variables.
+
+The component contains two functions: handleInputChange and handlePredict. The handleInputChange function is called whenever the user types in the input field, and it updates the text state variable accordingly. The handlePredict function is called when the user clicks the "Predict" button. It sends a POST request to the /predict endpoint on the server with the current value of the text state variable, and then updates the predictions state variable with the response from the server.
+
+Finally, the component renders a simple UI with an input field, a "Predict" button, and a list of predicted words. The list of predicted words is generated using the predictions state variable with the map function.
+
+Note that this is just an example, and the actual code for your front end may differ depending on your specific requirements and design. Also, keep in mind that you'll need to set up a server to handle the /predict endpoint and provide the predictions back to the front end.
+cool
+Great! Let me know if you have any other questions or if you need any further assistance.
+can you create a  HTML page to work with this react code?
+Sure thing! Here's an example HTML file that you can use to include the React component I provided in a web page:
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Next Word Predictor</title>
+  </head>
+  <body>
+    <div id="root"></div>
+
+    <!-- Load React library and compiled React component -->
+    <script src="https://unpkg.com/react@17.0.2/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.development.js"></script>
+    <script src="NextWordPredictor.js"></script>
+
+    <script>
+      // Mount the React component on the #root element
+      ReactDOM.render(React.createElement(NextWordPredictor), document.getElementById('root'));
+    </script>
+  </body>
+</html>
+
+In this HTML file, we include the React library and our compiled React component using two script tags. The NextWordPredictor.js file should be replaced with the actual file name of your compiled React component.
+
+Finally, we use the ReactDOM.render function to mount the React component on the #root element. This will render the component and allow the user to interact with it in their web browser.
+
+I hope this helps! Let me know if you have any questions.
+import torch
+import torch.nn as nn
+
+# Define o tamanho da entrada e da saída
+input_size = 10
+output_size = 2
+
+# Define a rede neural
+class NeuralNet(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size):
+        super(NeuralNet, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.relu = nn.ReLU()
+        self.fc2 = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        out = self.fc1(x)
+        out = self.relu(out)
+        out = self.fc2(out)
+        return out
+
+# Define o tamanho da camada oculta
+hidden_size = 5
+
+# Cria a rede neural
+net = NeuralNet(input_size, hidden_size, output_size)
+
+# Define a entrada de teste
+x = torch.randn(1, input_size)
+
+# Passa a entrada pela rede neural
+output = net(x)
+
+# Exibe a saída
+print(output)
+model = NeuralNet()
